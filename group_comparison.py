@@ -61,6 +61,7 @@ def independent_ttest(group1, group2, alpha: float = 0.05) -> Optional[bool]:
             print("Reject the null hypothesis: Significant difference between groups.")
             cohen_effect_size(group1, group2)
             return True
+    print('Data is not normally distributed')
     return None
 
 
@@ -83,6 +84,8 @@ def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
             elif abs(r) <= 1.0:
                 interpretation = "very large"
             print(f"According to Jacob Cohen, in the context of the social sciences, {interpretation} effect size.")
+            return True
+    print('Data is not normally distributed')
     return None
 
 
