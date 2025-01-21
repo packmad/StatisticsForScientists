@@ -97,8 +97,11 @@ else:
     print("Data is not normally distributed (reject H0).")
 
 ```
+
 ---
+
 # **Student's t-test**
+
 
 ### Purpose:
 
@@ -222,7 +225,27 @@ Interpretation:
 
 ---
 
-#. **Correlation Tests**
+# **Effect Size** 
+
+Wffect size is a measure of the magnitude of a phenomenon or the strength of a relationship in the population.
+
+While inferential tests (like t-tests, ANOVA, or p-values) assess whether an effect exists, effect sizes provide additional context by indicating how meaningful that effect is. 
+
+For differences between groups:
+
+1) Cohen’s $d$
+    - Measures the standardized mean difference between two groups.
+    - Interpretation (Cohen’s guidelines):
+        - Small: 0.2
+        - Medium: 0.5
+        - Large: 0.8
+2) Hedges’ $g$
+    - Similar to Cohen’s $d$ but adjusts for small sample sizes.
+
+
+---
+
+# **Correlation Tests**
 
 ### Purpose:
 
