@@ -2,7 +2,7 @@
 
 import statistics
 import numpy as np
-from scipy.stats import shapiro, ttest_ind, pearsonr
+from scipy.stats import shapiro, ttest_ind, pearsonr, levene
 from typing import Optional
 
 
@@ -17,7 +17,7 @@ def calculate_statistics(data, dec_num: int = 2):
 
 
 def is_data_normally_distributed(data, alpha: float = 0.05) -> bool:
-    s, p = shapiro(data)  # The null hypothesis assumes normality
+    s, p = shapiro(data)  # Null hypothesis: data was drawn from a normal distribution
     if p > alpha:
         print("Fail to reject the null hypothesis: Data appears to be normally distributed.")
         return True
@@ -50,9 +50,27 @@ def cohen_effect_size(group1, group2):
     print(interpretation)
 
 
+def equal_variances(group1, group2, alpha: float = 0.05) -> bool:
+    if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
+        levene_center = 'mean'  # Recommended for symmetric, moderate-tailed distributions
+    else:
+        levene_center = 'median'  # AKA Brown-Forsythe test - Recommended for skewed (non-normal) distributions
+    stat, p_value = levene(group1, group2, center=levene_center)  # Null hypothesis: populations with equal variances
+    if p_value < alpha:
+        return False  # Variances are significantly different.
+    else:
+        return True  # Variances are NOT significantly different.
+
+
 def independent_ttest(group1, group2, alpha: float = 0.05) -> Optional[bool]:
     if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
-        stat, p_value = ttest_ind(group1, group2)  # The null hypothesis assumes no difference between groups
+        if equal_variances(group1, group2):
+            print("Variances are significantly different -> Using Welch's t-test.")
+            equal_var = False
+        else:
+            print("Variances are NOT significantly different -> Using standard t-test.")
+            equal_var = True
+        stat, p_value = ttest_ind(group1, group2, equal_var=equal_var)  # Null hypothesis: means of the two groups are equal
         print(f"t-statistic: {stat}, p-value: {p_value}")
         if p_value >= alpha:
             print("Fail to reject the null hypothesis: NO significant difference between groups.")
