@@ -24,8 +24,41 @@ def is_data_normally_distributed(data, alpha: float = 0.05) -> bool:
     print("Reject the null hypothesis: Data is not normally distributed.")
     return False
 
+# sawilowsky2009new
+def effect_size_interpretation_sawilowsky(effect_size: float, dec_num: int = 2) -> str:
+    interpretation = f"={round(effect_size, dec_num)} -> Sawilowsky guidelines suggest a "
+    if abs(effect_size) < 0.01:
+        interpretation += "very small"
+    elif abs(effect_size) < 0.2:
+        interpretation += "small"
+    elif abs(effect_size) < 0.5:
+        interpretation += "medium"
+    elif abs(effect_size) < 0.8:
+        interpretation += "large"
+    elif abs(effect_size) < 1.2:
+        interpretation += "very large"
+    else:
+        interpretation += "huge"
+    interpretation += " effect size."
+    return interpretation
 
-def cohen_effect_size(group1, group2):
+
+# funder2019evaluating
+def effect_size_interpretation_funder_and_ozer(effect_size: float, dec_num: int = 2) -> str:
+    interpretation = f"={round(effect_size, dec_num)} -> Funder&Ozer guidelines suggest a "
+    if abs(effect_size) < 0.1:
+        interpretation += "small"
+    elif abs(effect_size) < 0.2:
+        interpretation += "medium"
+    elif abs(effect_size) < 0.8:
+        interpretation += "large"
+    else:
+        interpretation += "very large"
+    interpretation += " effect size."
+    return interpretation
+
+
+def cohen_d(group1, group2):
     mean_diff = statistics.mean(group1) - statistics.mean(group2)
     n1 = len(group1)
     n2 = len(group2)
@@ -34,22 +67,14 @@ def cohen_effect_size(group1, group2):
     if n1 < 21 or n2 < 21:
         print(f"Small sample size group1={n1} group2={n2} -> Adjusting Cohen's d with Hedges' g")
         d = d * (1 - (3 / (4 * (n1 + n2) - 9)))
-        interpretation = 'g'
+        interpretation = 'g'  # hedges1981distribution
     else:
-        interpretation = 'd'
-    interpretation += f"={d} indicates a "
-    if abs(d) < 0.2:
-        interpretation += "negligible"
-    elif abs(d) < 0.5:
-        interpretation += "small"
-    elif abs(d) < 0.8:
-        interpretation += "medium"
-    else:
-        interpretation += "large"
-    interpretation += " effect size."
+        interpretation = 'd'  # cohen2013statistical
+    interpretation += effect_size_interpretation_funder_and_ozer(d)
     print(interpretation)
 
 
+# gastwirth2009impact
 def equal_variances(group1, group2, alpha: float = 0.05) -> bool:
     if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
         levene_center = 'mean'  # Recommended for symmetric, moderate-tailed distributions
@@ -77,7 +102,7 @@ def independent_ttest(group1, group2, alpha: float = 0.05) -> Optional[bool]:
             return False
         else:
             print("Reject the null hypothesis: Significant difference between groups.")
-            cohen_effect_size(group1, group2)
+            cohen_d(group1, group2)
             return True
     print('Data is not normally distributed')
     return None
@@ -93,15 +118,7 @@ def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
             return False
         else:
             print("Significant correlation between variables.")
-            if abs(r) < 0.1:
-                interpretation = "small"
-            elif abs(r) < 0.3:
-                interpretation = "medium"
-            elif abs(r) < 0.5:
-                interpretation = "large"
-            elif abs(r) <= 1.0:
-                interpretation = "very large"
-            print(f"According to Jacob Cohen, in the context of the social sciences, {interpretation} effect size.")
+            print(f"r{effect_size_interpretation_funder_and_ozer(r)}")
             return True
     print('Data is not normally distributed')
     return None
