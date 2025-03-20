@@ -29,7 +29,7 @@ A **p-value** is a statistical measure that helps researchers determine the sign
     - Example: In a drug study, $H_0$​ could state that the drug has no effect compared to a placebo.
 2. **Interpreting p-values**:
     
-    - A small p-value (e.g., $p<0.05p$) suggests that the observed data is unlikely under $H_0$, leading to a rejection of the null hypothesis.
+    - A small p-value (e.g., $p<0.05$) suggests that the observed data is unlikely under $H_0$, leading to a rejection of the null hypothesis.
     - A large p-value (e.g., $p \geq 0.05$) suggests that the observed data is consistent with $H_0$​, and there is insufficient evidence to reject it.
 3. **Threshold (α)**:
     
