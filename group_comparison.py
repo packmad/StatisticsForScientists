@@ -65,7 +65,7 @@ def effect_size_interpretation_sawilowsky(effect_size: float, dec_num: int = 2) 
     return interpretation
 
 
-def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
+def correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
     assert len(group1) == len(group2)
     if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
         print('Data is normally distributed -> Using Pearson')
@@ -247,7 +247,7 @@ if __name__ == '__main__':
 
     dist4 = np.arange(10, 20)
     dist5 = np.array([5, 8, 12, 13, 18, 25, 40, 56, 66, 86])
-    pearson_correlation(dist4, dist5)
+    correlation(dist4, dist5)
 
     print()
 
