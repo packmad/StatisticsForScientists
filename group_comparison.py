@@ -4,43 +4,46 @@ import statistics
 import numpy as np
 
 from typing import Optional
-from scipy.stats import shapiro, ttest_ind, pearsonr, levene, mannwhitneyu
+from scipy.stats import shapiro, ttest_ind, pearsonr, levene, mannwhitneyu, kurtosis, norm, anderson
 
 
-def calculate_statistics(data, dec_num: int = 2):
-    assert len(data) > 1
+def calculate_statistics(data, dec_num: int = 4):
+    len_data = len(data)
+    assert len_data > 1
     avg = round(statistics.mean(data), dec_num)
     stddev = round(statistics.stdev(data), dec_num)
     median = round(statistics.median(data), dec_num)
     max_value = round(max(data), dec_num)
     min_value = round(min(data), dec_num)
-    print(f"Avg: {avg}, StDev: {stddev}, Med: {median}, Max: {max_value}, Min: {min_value}")
+    kurt = round(kurtosis_fisher(data), dec_num)
+    print(f"Len: {len_data}, Min: {min_value}, Max: {max_value}, Avg: {avg}, StDev: {stddev}, Med: {median},  Kurtosis: {kurt}")
+    return len_data, min_value, max_value, avg, stddev, median, kurt
 
 
-def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
-    assert len(group1) == len(group2)
-    if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
-        r, p_value = pearsonr(group1, group2)
-        print(f"Pearson Correlation = {r}, p-value = {p_value}")
-        if p_value >= alpha:
-            print("NO significant correlation between variables.")
-            return False
-        else:
-            print("Significant correlation between variables.")
-            print(f"r{effect_size_interpretation_funder_and_ozer(r)}")
-            return True
-    print('Data is not normally distributed')
+def kurtosis_fisher(dataset) -> float:
+    return kurtosis(dataset, fisher=True, nan_policy='raise')
+
+
+def kurtosis_fisher_interpretation(dataset):
+    kurt = kurtosis_fisher(dataset)
+
+    if kurt > 0:
+        interpretation = "leptokurtic (peaked with heavy tails)"
+    elif kurt < 0:
+        interpretation = "platykurtic (flat with light tails)"
+    else:
+        interpretation = "mesokurtic (similar to normal distribution)"
+
+    print(f"Kurtosis: {kurt:.4f} -> The distribution is {interpretation}")
+
+
+def anderson_darling(dataset):
+    dists = ['norm', 'expon', 'logistic', 'gumbel_l', 'gumbel_r', 'weibull_min']
+    for d in dists:
+        result = anderson(dataset, dist=d)
+        if result.statistic < result.critical_values[2]:  # index 2 corresponds to 5%
+            return d
     return None
-
-
-def is_data_normally_distributed(data, alpha: float = 0.05) -> bool:
-    assert 6 < len(data) < 50  # Not recommended otherwise
-    s, p = shapiro(data)  # Null hypothesis: data was drawn from a normal distribution
-    if p > alpha:
-        #print("Fail to reject the null hypothesis: Data appears to be normally distributed.")
-        return True
-    #print("Reject the null hypothesis: Data is not normally distributed.")
-    return False
 
 
 # sawilowsky2009new
@@ -60,6 +63,32 @@ def effect_size_interpretation_sawilowsky(effect_size: float, dec_num: int = 2) 
         interpretation += "huge"
     interpretation += " effect size."
     return interpretation
+
+
+def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
+    assert len(group1) == len(group2)
+    if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
+        r, p_value = pearsonr(group1, group2)
+        print(f"Pearson Correlation = {r}, p-value = {p_value}")
+        if p_value >= alpha:
+            print("NO significant correlation between variables.")
+            return False
+        else:
+            print("Significant correlation between variables.")
+            print(f"r{effect_size_interpretation_funder_and_ozer(r)}")
+            return True
+    print('Data is not normally distributed')
+    return None
+
+
+def is_data_normally_distributed(data, alpha: float = 0.05) -> bool:
+    assert 6 < len(data)  # Not recommended otherwise
+    s, p = shapiro(data)  # Null hypothesis: data was drawn from a normal distribution
+    if p > alpha:
+        #print("Fail to reject the null hypothesis: Data appears to be normally distributed.")
+        return True
+    #print("Reject the null hypothesis: Data is not normally distributed.")
+    return False
 
 
 # funder2019evaluating
@@ -192,11 +221,15 @@ def compare_groups(group1, group2, alpha: float = 0.05):
 if __name__ == '__main__':
     dist1 = np.random.normal(21, 8, 32)
     dist2 = np.random.normal(42, 10, 32)
+    calculate_statistics(dist1)
+    calculate_statistics(dist2)
     compare_groups(dist1, dist2)
 
     print()
 
     dist3 = np.random.uniform(low=1, high=10, size=32)
+    calculate_statistics(dist1)
+    calculate_statistics(dist3)
     compare_groups(dist1, dist3)
 
     print()
@@ -204,3 +237,10 @@ if __name__ == '__main__':
     dist4 = np.arange(10, 20)
     dist5 = np.array([5, 8, 12, 13, 18, 25, 40, 56, 66, 86])
     pearson_correlation(dist4, dist5)
+
+    print()
+
+    dist6 = norm.rvs(size=1000, random_state=3)
+    calculate_statistics(dist6)
+    kurtosis_fisher_interpretation(dist6)
+    anderson_darling(dist6)
