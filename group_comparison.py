@@ -4,7 +4,7 @@ import statistics
 import numpy as np
 
 from typing import Optional
-from scipy.stats import shapiro, ttest_ind, pearsonr, levene, mannwhitneyu, kurtosis, norm, anderson
+from scipy.stats import shapiro, ttest_ind, pearsonr, levene, mannwhitneyu, kurtosis, norm, anderson, spearmanr
 
 
 def calculate_statistics(data, dec_num: int = 4):
@@ -68,6 +68,7 @@ def effect_size_interpretation_sawilowsky(effect_size: float, dec_num: int = 2) 
 def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
     assert len(group1) == len(group2)
     if is_data_normally_distributed(group1) and is_data_normally_distributed(group2):
+        print('Data is normally distributed -> Using Pearson')
         r, p_value = pearsonr(group1, group2)
         print(f"Pearson Correlation = {r}, p-value = {p_value}")
         if p_value >= alpha:
@@ -77,8 +78,18 @@ def pearson_correlation(group1, group2, alpha: float = 0.05) -> Optional[bool]:
             print("Significant correlation between variables.")
             print(f"r{effect_size_interpretation_funder_and_ozer(r)}")
             return True
-    print('Data is not normally distributed')
-    return None
+    else:
+        print('Data is not normally distributed -> Using Spearman')
+        # Null hypothesis: No monotonic relationship between group1 and group2
+        rho, p_value = spearmanr(group1, group2)
+        print(f"Spearman's rho = {rho}, p-value = {p_value}")
+        if p_value < alpha:
+            print(f"Data suggest a monotonic relationship.")
+            print(f"r{effect_size_interpretation_funder_and_ozer(rho)}")
+            return True
+        else:
+            print("No significant monotonic relationship detected.")
+            return False
 
 
 def is_data_normally_distributed(data, alpha: float = 0.05) -> bool:
