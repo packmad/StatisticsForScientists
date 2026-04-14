@@ -1,0 +1,352 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+
+\title{From Estimands to Inference: A Practical Tutorial for Robust Statistical Analysis in Scientific Papers}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Modern scientific practice increasingly emphasizes estimation, uncertainty quantification, and transparent reporting over rigid hypothesis testing workflows. This tutorial provides a principled yet practical introduction to core statistical concepts—ranging from basic data summaries to inferential procedures—tailored for researchers conducting standard analyses (two-group comparisons and correlation). We adopt an \emph{estimand-first} perspective, clarifying what is being estimated before selecting methods, and demonstrate how this perspective leads to more robust and interpretable results. The exposition is aligned with a lightweight Python implementation (\verb|inferential_stats|) and is intended to serve both as a learning resource and as a methodological reference for writing scientifically defensible papers.
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+Statistical analysis in scientific papers is often presented as a sequence of hypothesis tests. However, this perspective can obscure the fundamental goal: \emph{estimating quantities of scientific interest and quantifying uncertainty}. This tutorial reframes standard analyses around this goal and provides a structured path from basic concepts to practical implementation.
+
+The intended audience is a reader who has seen basic statistical terms before but may not yet feel comfortable deciding which method answers which scientific question. For that reason, the paper emphasizes the meaning of each concept before introducing formulas. A useful habit is to ask, at every step: ``What quantity am I trying to learn about, and what would a good summary of uncertainty look like?''
+
+We focus on:
+\begin{itemize}
+\item Independent two-group comparisons
+\item Correlation analysis
+\end{itemize}
+
+These cover a large fraction of empirical studies across disciplines. For example, a researcher may want to compare a treatment group with a control group, or may want to ask whether two measured variables tend to increase and decrease together. Although the mathematical tools differ, the underlying logic is similar: define the quantity of interest, estimate it from data, and report how uncertain the estimate is.
+
+To keep the discussion concrete, every worked example in this paper is implemented in the companion script \verb|examples.py|. Running that script reproduces the datasets and numerical results quoted below.
+
+\section{Data, Variables, and Assumptions}
+
+We assume data consist of independent observations (e.g., measurements from different individuals) $X_1, \dots, X_n$.
+
+Before discussing methods, it helps to distinguish four closely related ideas:
+\begin{itemize}
+\item A \textbf{population} is the larger collection of cases we care about.
+\item A \textbf{sample} is the set of cases we actually observed.
+\item A \textbf{variable} is a measured characteristic, such as age, or reaction time.
+\item An \textbf{observation} is one recorded value of a variable for one unit.
+\end{itemize}
+
+Statistics turns a finite sample into a statement about a population. Because a sample is only one possible draw from the population, uncertainty is unavoidable. Much of inferential statistics is about describing that uncertainty honestly.
+
+\subsection{Independence}
+
+Independence is the most critical assumption: observations must not influence each other. Intuitively, knowing one observation should not allow us to predict another simply because of the way the data were collected.
+
+For example, if each participant contributes one measurement, independence may be plausible. If the same participant is measured multiple times, the observations are typically related, and methods for repeated measures are needed instead. Ignoring such dependence usually makes uncertainty appear smaller than it really is.
+
+\subsection{Types of Variables}
+
+We consider:
+\begin{itemize}
+\item Continuous variables (measurements)
+\item Ordinal variables (rank-like data)
+\end{itemize}
+
+A \textbf{continuous} variable can, at least in principle, vary smoothly on a numerical scale: height, blood pressure, and task completion time are common examples. Differences and averages of continuous variables are often directly meaningful.
+
+An \textbf{ordinal} variable records order without guaranteeing equal spacing between values. Survey ratings such as ``strongly disagree'' to ``strongly agree'' are the standard example. With ordinal data, it is usually safer to reason about ranks or ordering rather than precise arithmetic differences.
+
+The type of variable matters because it affects which summaries and inferential procedures are scientifically interpretable.
+
+\section{Descriptive Statistics}
+
+Descriptive statistics summarize observed data without generalizing beyond the sample.
+It characterizes aggregates; they do not reliably describe individual observations, especially in the presence of variability or heavy-tailed distributions.
+
+This section is about describing what was seen, not yet about drawing conclusions about a wider population. Descriptive summaries are still essential because they reveal the basic shape, center, and spread of the data before any formal inference is attempted.
+
+\subsection{Mean vs. Average}
+
+In statistical writing, it is important to distinguish between the terms \emph{mean} and \emph{average}. The \textbf{mean} typically refers to the arithmetic mean, a precisely defined quantity given by:
+\begin{equation}
+\bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i.
+\end{equation}
+
+By contrast, the term \textbf{average} is informal and may refer to different measures of central tendency, including the mean, median, or mode. Because of this ambiguity, scientific reporting should favor the term \emph{mean} when referring specifically to the arithmetic average. This ensures clarity and avoids misinterpretation, particularly in skewed or heavy-tailed distributions where different ``averages'' may differ substantially.
+
+For a novice reader, the key point is that the mean is a balance point of the data. It uses every observation, which makes it informative but also sensitive to unusually large or small values. When a few observations are extreme, the mean can move noticeably even if most of the sample stays the same.
+
+\subsection{Scale}
+
+The sample standard deviation is:
+\begin{equation}
+s = \sqrt{\frac{1}{n-1} \sum_{i=1}^n (x_i - \bar{x})^2}
+\end{equation}
+
+The standard deviation measures how spread out the observations are around the mean. If most values cluster tightly near $\bar{x}$, then $s$ is small. If values are widely dispersed, then $s$ is large.
+
+It is useful to distinguish standard deviation from the \emph{standard error}. The standard deviation describes variability among individual observations. The standard error describes uncertainty in an estimated quantity, such as the sample mean. Beginners often confuse these because both are measures of variation, but they answer different questions.
+
+\section{Statistical Inference}
+
+Statistical inference uses sample data to estimate population quantities.
+
+The central move in inference is to go beyond ``What did this sample look like?'' and ask ``What does this sample suggest about the population?'' Because different samples from the same population would give different answers, inferential methods attach uncertainty statements to estimates.
+
+Four related terms are worth separating:
+\begin{itemize}
+\item An \textbf{estimand} is the population quantity we want to know.
+\item An \textbf{estimator} is the rule or formula used to estimate it.
+\item An \textbf{estimate} is the numerical result obtained from the observed sample.
+\item A \textbf{test} is a procedure for assessing compatibility between the data and a hypothesis.
+\end{itemize}
+
+Keeping these terms distinct helps prevent a common mistake: choosing a familiar test first and only later asking what quantity it actually informs.
+
+\subsection{Estimands}
+
+An \textbf{estimand} is the precise quantity of interest. Examples include:
+\begin{itemize}
+\item Difference in means
+\item Probability of superiority
+\item Correlation coefficient
+\end{itemize}
+
+This distinction is critical: \emph{methods should be chosen based on the estimand, not vice versa} \citep{cumming2014newstatistics}.
+
+For instance, ``Are the groups different?'' is often too vague to be scientifically useful. Different methods correspond to different, more precise questions. Are we asking about the difference in average outcome? About whether one group tends to have larger values than the other? About how strongly two variables move together? Once the question is stated precisely, the method selection becomes much clearer.
+
+\subsection{Confidence Intervals}
+
+A confidence interval (CI) provides a range of plausible values for the estimand.
+
+In practice, a confidence interval combines two ideas: the estimated effect size and the precision of that estimate. A narrow interval suggests the data pin down the estimand fairly well; a wide interval suggests substantial uncertainty.
+
+For a 95\% CI, the frequentist interpretation is about the procedure, not about one fixed realized interval. If we repeated the study many times and computed a 95\% CI each time, about 95\% of those intervals would contain the true estimand. In applied writing, it is common and useful to say that the interval gives a range of values reasonably compatible with the data and the model assumptions.
+
+\section{Two-Group Comparisons}
+
+Let $X$ and $Y$ denote two independent samples.
+
+This setting appears whenever we compare two conditions, groups, or treatments. The most important first decision is what kind of difference matters scientifically. Sometimes the target is a difference in means; sometimes it is an ordering statement such as whether values from one group tend to exceed values from the other.
+
+\subsection{Mean Difference}
+
+The estimand is:
+\begin{equation}
+\Delta = \mathbb{E}[X] - \mathbb{E}[Y]
+\end{equation}
+
+This quantity asks how much larger or smaller the population mean of group $X$ is than the population mean of group $Y$. If $\Delta > 0$, group $X$ tends to have larger values on average. If $\Delta < 0$, group $Y$ tends to have larger values on average.
+
+The mean difference is especially natural when the variable is continuous and differences on the original measurement scale are substantively meaningful. For example, a difference of 5 milliseconds or 2 exam points may be directly interpretable in a way that a rank-based quantity is not.
+
+\subsubsection{Welch's t-test}
+
+Welch's t-test \citep{welch1947generalization} estimates $\Delta$ without assuming equal variances.
+
+This is often the safer default for comparing means from two independent groups. The reason is simple: real datasets frequently have different variability in the two groups, and Welch's method is designed to remain valid under that inequality. It still targets the same estimand, the difference in means.
+
+Despite the name ``test,'' the method is also useful because it naturally leads to a confidence interval for the mean difference. For most scientific reporting, the interval and the estimated difference are at least as important as the p-value.
+
+\subsubsection{Student's t-test}
+
+Student's t-test assumes equal variances \citep{student1908probable}.
+
+This equal-variance assumption means the two groups are treated as if they have the same underlying spread. When that assumption is wrong, uncertainty can be misestimated. For this reason, many analysts prefer Welch's approach unless there is a strong substantive reason to pool variances.
+
+\paragraph{Example: a reaction-time experiment.}
+Suppose a psychologist compares reaction times for participants using interface A versus interface B. In the dataset from \verb|examples.py|, interface A has $n = 12$ observations with mean $406.92$ ms, and interface B has $n = 11$ observations with mean $430.00$ ms. Because the scientific question is ``How many milliseconds faster is one interface on average?'', the estimand is the difference in means. Welch's t-test estimates that difference as $-23.08$ ms (95\% CI $[-33.92, -12.25]$), with $t(20.96) = -4.43$ and $p < .001$. The negative sign means interface A is faster on average, and the result is easy to report directly in milliseconds.
+
+\subsection{Effect Size: Hedges' g}
+
+Hedges' $g$ standardizes the mean difference \citep{hedges1981distribution}.
+
+Whereas $\Delta$ is expressed in the original measurement units, Hedges' $g$ expresses the group difference relative to the variability in the data. Standardized effect sizes are helpful when raw units are unfamiliar or when comparing results across studies that use different measurement scales.
+
+However, standardization can also make results less intuitive for a novice reader. In many papers, the best practice is to report both: the raw mean difference for interpretability and a standardized effect size for comparability.
+
+\subsection{Stochastic Dominance}
+
+An alternative estimand is the probability of superiority:
+\begin{equation}
+\theta = P(X > Y) + \tfrac{1}{2} P(X = Y)
+\end{equation}
+
+This quantity is often easier to interpret verbally than it first appears. Imagine drawing one observation from group $X$ and one from group $Y$ at random. Then $\theta$ is the probability that the draw from $X$ is larger than the draw from $Y$, counting ties as half a success.
+
+If $\theta = 0.5$, neither group tends to dominate the other. Values above $0.5$ suggest group $X$ tends to be larger; values below $0.5$ suggest group $Y$ tends to be larger. This estimand is appealing for ordinal data and for situations where rank ordering matters more than mean differences.
+
+\subsubsection{Mann--Whitney U Test}
+
+This test evaluates stochastic dominance \citep{mann1947test}.
+
+Beginners often hear that the Mann--Whitney test is ``the nonparametric version of the t-test.'' That shortcut is only partly helpful. The more precise view is that it is a rank-based procedure tied to ordering between groups. It is best understood through the estimand it informs, rather than as a universal replacement for mean-based methods.
+
+\subsubsection{Cliff's Delta}
+
+Cliff's delta is defined as:
+\begin{equation}
+\delta = 2\theta - 1
+\end{equation}
+
+Cliff's delta is a simple transformation of the probability of superiority. Its values range from $-1$ to $1$:
+\begin{itemize}
+\item $\delta = 0$ means neither group tends to be larger.
+\item $\delta > 0$ means group $X$ tends to have larger values.
+\item $\delta < 0$ means group $Y$ tends to have larger values.
+\end{itemize}
+
+Because it is based on pairwise ordering rather than raw distances, Cliff's delta is especially useful when the data are ordinal or contain outliers that make mean-based summaries less stable.
+
+\paragraph{Example: an ordinal usability rating study.}
+Imagine two versions of a mobile app are compared using a 5-point satisfaction scale from ``very dissatisfied'' to ``very satisfied.'' In the worked dataset, both versions have $n = 12$ ratings; the newer version has mean rating $4.25$ and the older version has mean rating $3.50$. These ratings are ordered, but the distance between adjacent categories is not guaranteed to be equal, so a rank-based approach is more defensible than comparing means of the numeric labels directly. The Mann--Whitney analysis estimates a probability of superiority of $0.76$ (95\% CI $[0.57, 0.91]$), with $U = 109$ and $p = .022$, while Cliff's delta is $0.51$. In plain language, a randomly chosen rating from the new version exceeds one from the old version about $76\%$ of the time, counting ties as one-half.
+
+\section{Correlation Analysis}
+
+Correlation addresses a different kind of scientific question from a group comparison. Instead of comparing two samples, we now study whether two variables vary together across observations.
+
+Two warnings are worth stating early. First, correlation does not imply causation: two variables can be associated for many reasons, including common causes or selection effects. Second, a correlation close to zero means lack of \emph{linear} or \emph{monotonic} association depending on the measure used; it does not guarantee the absence of any relationship.
+
+\subsection{Pearson Correlation}
+
+Pearson's correlation coefficient is:
+\begin{equation}
+r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}
+\end{equation}
+
+It measures linear association \citep{pearson1895notes}.
+
+The coefficient $r$ ranges from $-1$ to $1$. Values near $1$ indicate a strong positive linear relationship, values near $-1$ indicate a strong negative linear relationship, and values near $0$ indicate weak linear association.
+
+Pearson correlation is appropriate when the relationship of interest is approximately linear and when unusually extreme observations are not dominating the result. A scatterplot is often the fastest way to judge whether Pearson's $r$ is a sensible summary.
+
+\subsection{Spearman Correlation}
+
+Spearman's $\rho$ is Pearson's correlation applied to ranks \citep{spearman1904proof}.
+
+This makes Spearman's correlation sensitive to \emph{monotonic} relationships, meaning relationships that mostly move in one direction even if they are not straight lines. If larger values of one variable tend to go with larger values of the other, Spearman's $\rho$ will be positive even when the pattern is curved rather than linear.
+
+Because it is rank-based, Spearman's correlation is often more robust to outliers and more appropriate for ordinal data.
+
+\paragraph{Example: study time and exam performance.}
+Suppose an instructor records weekly study hours and final exam scores for a group of students. In the dataset from \verb|examples.py|, the sample size is $n = 15$. The Pearson correlation is $r = 0.93$ (95\% CI $[0.80, 0.98]$, $p < .001$), and the Spearman correlation is $\rho = 0.94$ (95\% CI $[0.79, 0.99]$, $p < .001$). Because the two summaries are very similar, this example illustrates a setting where the relationship is increasing and close enough to linear that Pearson's $r$ is a sensible default, while Spearman's $\rho$ reaches the same substantive conclusion.
+
+\subsection{Confidence Intervals}
+
+For Pearson correlation, Fisher's $z$ transform is used \citep{fisher1921probable}:
+\begin{equation}
+z = \tanh^{-1}(r)
+\end{equation}
+
+The purpose of this transformation is not to change the scientific question, but to make uncertainty calculations work better mathematically. Correlations have a bounded scale, so direct normal approximations on the raw $r$ scale can behave poorly, especially when $|r|$ is large. Fisher's transformation maps the correlation to a scale where approximate normality is more reasonable.
+
+For Spearman correlation, bootstrap methods are often used \citep{efron1994introduction}.
+
+This is common because the sampling distribution of rank-based statistics can be awkward in finite samples. Bootstrap intervals use repeated resampling from the observed data to approximate the amount of uncertainty without requiring a simple closed-form formula.
+
+\section{Bootstrap Methods}
+
+Bootstrap resampling estimates uncertainty by repeatedly sampling with replacement \citep{efron1979bootstrap}.
+
+The phrase ``with replacement'' means that after an observation is drawn into a bootstrap sample, it is placed back and may be drawn again. As a result, a bootstrap sample has the same size as the original sample but is not identical to it: some observations appear more than once and some not at all.
+
+The bootstrap is conceptually simple:
+\begin{enumerate}
+\item Treat the observed sample as a stand-in for the population.
+\item Resample from it many times.
+\item Recompute the statistic of interest on each resample.
+\item Use the resulting distribution to estimate standard errors or confidence intervals.
+\end{enumerate}
+
+For beginners, the bootstrap is valuable because it links uncertainty to a concrete computational experiment rather than only to abstract probability formulas.
+
+\paragraph{Example: confidence intervals for a hard-to-analyze statistic.}
+Suppose a researcher wants a confidence interval for Spearman's correlation between stress level and sleep quality in a modest sample. In the companion dataset, $n = 15$ paired observations give a Spearman correlation of $\rho = -0.96$ with a bootstrap 95\% CI of $[-0.99, -0.84]$ and $p < .001$. Rather than relying on a complicated analytic approximation, the researcher can repeatedly resample the observed participant pairs, recompute Spearman's $\rho$ for each resample, and use the resulting empirical distribution to form the interval. This illustrates the practical appeal of bootstrap methods: they provide a flexible route to uncertainty quantification when exact formulas are inconvenient.
+
+\section{Diagnostics and Model Checking}
+
+Diagnostics should inform interpretation, not dictate method selection.
+
+In practice, diagnostics ask whether the data look compatible with the assumptions that support a method, and whether any observations are so unusual that they deserve closer attention. They are part of understanding the data, not a mechanical gatekeeping ritual.
+
+For two-group comparisons, common checks include plotting both groups, inspecting outliers, and considering whether the variable is so skewed that a mean-based summary becomes hard to interpret. For correlation, a scatterplot is especially important because it can reveal curvature, clusters, or a single influential point that a summary coefficient might hide.
+
+The goal is not perfection. Real data are messy. The goal is to understand whether the numerical summaries are telling a stable and scientifically meaningful story.
+
+\section{Choosing a Method: Worked Scenarios}
+
+Because beginners often struggle with method selection, so it is helpful to look at complete research scenarios.
+
+\subsection{Scenario 1: Continuous outcome, two independent groups}
+
+A biomedical researcher compares systolic blood pressure after treatment in a drug group and a placebo group. In \verb|examples.py|, the drug group has $n = 14$ and mean $119.29$ mmHg, whereas the placebo group has $n = 13$ and mean $128.23$ mmHg. Blood pressure is continuous, and a difference in mean millimeters of mercury is directly meaningful, so the estimand is the difference in means. Welch's t-test estimates the mean difference as $-8.95$ mmHg (95\% CI $[-11.15, -6.74]$), with $t(24.48) = -8.38$ and $p < .001$. This is a good example of a continuous outcome where the raw-unit effect is immediately interpretable.
+
+\subsection{Scenario 2: Ordinal outcome, two independent groups}
+
+An education researcher compares two teaching methods using a 7-point self-confidence rating collected after the course. In the worked example, both groups have $n = 14$, with mean ratings $5.86$ for method A and $4.86$ for method B. The scale is ordered, but differences between adjacent ratings may not be meaningfully equal, so a stochastic-dominance perspective is preferable. The Mann--Whitney analysis estimates a probability of superiority of $0.82$ (95\% CI $[0.67, 0.93]$), with $U = 160$ and $p = .002$, and Cliff's delta is $0.63$. This means a randomly chosen student from method A is rated more confident than one from method B about $82\%$ of the time, counting ties as one-half.
+
+\subsection{Scenario 3: Association between two continuous measurements}
+
+A physiologist records body temperature and heart rate during exercise sessions. In the companion example, the sample size is $n = 12$, and Pearson correlation gives $r = 0.96$ (95\% CI $[0.88, 0.99]$, $p < .001$). If the goal is to summarize whether the variables are linearly associated across sessions, Pearson correlation is suitable because the paired measurements move together in a roughly linear way. If the pattern were monotonic but clearly curved, or if a few sessions were extreme, Spearman correlation would be a more stable summary.
+
+\subsection{Scenario 4: Same question, different estimand}
+
+Consider again the reaction-time dataset from earlier. One researcher asks, ``How many milliseconds faster is interface A than interface B on average?'' That question targets a difference in means, and the answer is a mean difference of $-23.08$ ms (95\% CI $[-33.92, -12.25]$). Another asks, ``If I randomly pick one user from each interface, how likely is the user on interface A to finish faster?'' To answer that question, we switch to a stochastic-dominance framing on the completion-time scale and estimate that interface A is faster about $90\%$ of the time (probability of superiority $= 0.90$, 95\% CI $[0.75, 1.00]$, $U = 119$, $p = .001$). The dataset is identical in both analyses, but the scientifically relevant summary changes because the estimand changes.
+
+\section{Reporting Results}
+
+A complete report includes different items to answer different questions about the data and the scientific question. 
+
+\begin{itemize}
+\item The \textbf{point estimate} states the best single-number summary from the data.
+\item The \textbf{confidence interval} expresses uncertainty around that estimate.
+\item The \textbf{test statistic and p-value} quantify how incompatible the data are with a specific null model.
+\item The \textbf{effect size} helps judge practical magnitude rather than only statistical detectability.
+\end{itemize}
+
+For novice-friendly scientific writing, it is usually better to lead with the estimate and interval, and only then report the p-value. This keeps attention on scientific magnitude and uncertainty rather than reducing the result to a binary significant/not-significant label.
+
+A clear sentence often has the following structure: report the estimated quantity, give its interval, then provide the associated test result. For example, one might write that the drug group had systolic blood pressure $8.95$ mmHg lower on average than the placebo group, with a 95\% CI from $6.74$ to $11.15$ mmHg lower, together with the relevant test statistic and p-value.
+
+\section{Practical Workflow}
+
+\begin{enumerate}
+\item Define the estimand
+\item Choose method aligned with estimand
+\item Compute estimate and CI
+\item Report results with interpretation
+\end{enumerate}
+
+This workflow is intentionally simple, but it captures a disciplined way of thinking:
+\begin{itemize}
+\item First decide what scientific quantity matters.
+\item Then select a method that estimates that quantity under assumptions you can defend.
+\item Next compute both the estimate and its uncertainty.
+\item Finally explain the result in words that connect back to the original research question.
+\end{itemize}
+
+Many statistical mistakes occur when these steps are reversed, especially when a researcher begins with a familiar test and only afterward tries to interpret whatever number comes out. An estimand-first workflow helps prevent that problem.
+
+The companion \verb|examples.py| script follows this workflow for every example in the paper: it defines the estimand, runs the aligned analysis, and prints the resulting estimates, intervals, and test summaries.
+
+\section{Conclusion}
+
+This tutorial provides a principled foundation for statistical analysis in scientific papers, emphasizing clarity of estimands, robustness of methods, and transparency of reporting.
+
+For a novice reader, the most important lesson is that statistics is not mainly about memorizing test names. It is about linking a scientific question to a quantity of interest, using data to estimate that quantity, and describing how certain or uncertain that estimate is. Once that perspective is clear, individual methods such as Welch's t-test, Mann--Whitney, Pearson correlation, Spearman correlation, and the bootstrap fit into a much more coherent picture.
+
+\bibliographystyle{plainnat}
+\bibliography{bibliography}
+
+\end{document}

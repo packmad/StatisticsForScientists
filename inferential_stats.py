@@ -253,8 +253,13 @@ def anderson_darling_candidates(data: ArrayLike1D) -> list[str]:
     dists = ["norm", "expon", "logistic", "gumbel_l", "gumbel_r"]
     accepted: list[str] = []
     for dist in dists:
-        result = anderson(x, dist=dist)
-        if result.statistic < result.critical_values[2]:
+        # SciPy 1.17+ requires choosing a p-value calculation method explicitly.
+        # 'interpolate' preserves the historical, deterministic table-based behavior.
+        result = anderson(x, dist=dist, method="interpolate")
+        # Historically we compared against the 5% critical value (index 2).
+        # With an explicit method, SciPy returns a p-value instead, so we keep
+        # the same decision rule: accept if we fail to reject at alpha=0.05.
+        if float(result.pvalue) >= 0.05:
             accepted.append(dist)
     return accepted
 
