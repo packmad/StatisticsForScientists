@@ -3,10 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Callable, Literal, Optional, Sequence, Any
 import math
+import warnings
 
 import numpy as np
 from scipy.stats import (
     anderson,
+    ConstantInputWarning,
     kurtosis,
     levene,
     mannwhitneyu,
@@ -33,6 +35,7 @@ class DescriptiveStats:
     minimum: float
     maximum: float
     kurtosis_fisher: float
+    notes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -186,6 +189,19 @@ def describe(data: ArrayLike1D) -> DescriptiveStats:
     x = _as_1d_float_array(data, name="data")
     if x.size < 2:
         raise ValueError("At least 2 observations are required for descriptive statistics with sample SD.")
+    notes: list[str] = []
+    # SciPy's kurtosis is numerically unstable for constant or nearly constant arrays.
+    # We avoid surfacing SciPy warnings by returning NaN with an explicit note instead.
+    ptp = float(np.ptp(x))
+    scale = max(1.0, float(abs(np.mean(x))))
+    near_constant_tol = 1e-12 * scale
+    if ptp <= near_constant_tol:
+        kurt = float("nan")
+        notes.append(
+            "Kurtosis is undefined or numerically unstable for constant/nearly-constant data; returning NaN."
+        )
+    else:
+        kurt = float(kurtosis(x, fisher=True, bias=False, nan_policy="raise"))
     return DescriptiveStats(
         n=int(x.size),
         mean=float(np.mean(x)),
@@ -193,7 +209,8 @@ def describe(data: ArrayLike1D) -> DescriptiveStats:
         median=float(np.median(x)),
         minimum=float(np.min(x)),
         maximum=float(np.max(x)),
-        kurtosis_fisher=float(kurtosis(x, fisher=True, bias=False, nan_policy="raise")),
+        kurtosis_fisher=kurt,
+        notes=tuple(notes),
     )
 
 
@@ -363,19 +380,27 @@ def _bootstrap_correlation_ci(
     statistic_fn: Callable[[np.ndarray, np.ndarray], float],
     n_resamples: int = 5000,
     random_state: int = 0,
-) -> ConfidenceInterval:
+) -> tuple[ConfidenceInterval, int]:
     rng = np.random.default_rng(random_state)
     n = x.size
-    estimates = np.empty(n_resamples, dtype=float)
-    observed = float(statistic_fn(x, y))
+    finite_estimates: list[float] = []
+    nonfinite_count = 0
 
     for i in range(n_resamples):
         idx = rng.integers(n, size=n)
-        estimate = float(statistic_fn(x[idx], y[idx]))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=ConstantInputWarning)
+            estimate = float(statistic_fn(x[idx], y[idx]))
         if not np.isfinite(estimate):
-            estimate = observed
-        estimates[i] = float(np.clip(estimate, -1.0, 1.0))
+            nonfinite_count += 1
+            continue
+        finite_estimates.append(float(np.clip(estimate, -1.0, 1.0)))
 
+    if len(finite_estimates) < 10:
+        # Too few finite bootstrap draws to form a meaningful percentile interval.
+        return ConfidenceInterval(level=confidence_level, lower=float("nan"), upper=float("nan")), nonfinite_count
+
+    estimates = np.asarray(finite_estimates, dtype=float)
     alpha = 1.0 - confidence_level
     if alternative == "two-sided":
         lower, upper = np.quantile(estimates, [alpha / 2.0, 1.0 - alpha / 2.0])
@@ -386,7 +411,7 @@ def _bootstrap_correlation_ci(
         lower = -1.0
         upper = float(np.quantile(estimates, 1.0 - alpha))
 
-    return ConfidenceInterval(level=confidence_level, lower=float(lower), upper=float(upper))
+    return ConfidenceInterval(level=confidence_level, lower=float(lower), upper=float(upper)), nonfinite_count
 
 
 def cliffs_delta(group1: ArrayLike1D, group2: ArrayLike1D) -> EffectSize:
@@ -577,7 +602,7 @@ def compare_independent_groups(
 # ------------------------------
 
 
-def _pearson_ci(r: float, n: int, confidence_level: float) -> ConfidenceInterval:
+def _pearson_ci(r: float, n: int, confidence_level: float, alternative: Alternative) -> ConfidenceInterval:
     if n < 4:
         raise ValueError("Pearson confidence interval via Fisher z requires n >= 4.")
     if r >= 1.0:
@@ -587,10 +612,20 @@ def _pearson_ci(r: float, n: int, confidence_level: float) -> ConfidenceInterval
     z = np.arctanh(r)
     se = 1.0 / math.sqrt(n - 3)
     alpha = 1.0 - confidence_level
-    z_crit = float(norm.ppf(1.0 - alpha / 2.0))
-    lower = float(np.tanh(z - z_crit * se))
+    if alternative == "two-sided":
+        z_crit = float(norm.ppf(1.0 - alpha / 2.0))
+        lower = float(np.tanh(z - z_crit * se))
+        upper = float(np.tanh(z + z_crit * se))
+        return ConfidenceInterval(level=confidence_level, lower=lower, upper=upper)
+    if alternative == "greater":
+        # One-sided (1-alpha) lower confidence bound.
+        z_crit = float(norm.ppf(1.0 - alpha))
+        lower = float(np.tanh(z - z_crit * se))
+        return ConfidenceInterval(level=confidence_level, lower=lower, upper=1.0)
+    # alternative == "less"
+    z_crit = float(norm.ppf(1.0 - alpha))
     upper = float(np.tanh(z + z_crit * se))
-    return ConfidenceInterval(level=confidence_level, lower=lower, upper=upper)
+    return ConfidenceInterval(level=confidence_level, lower=-1.0, upper=upper)
 
 
 def correlation(
@@ -613,24 +648,31 @@ def correlation(
 
     if method == "pearson":
         coefficient, p_value = pearsonr(x_arr, y_arr, alternative=alternative)
-        ci = _pearson_ci(float(coefficient), int(x_arr.size), confidence_level)
+        ci = _pearson_ci(float(coefficient), int(x_arr.size), confidence_level, alternative)
         assumptions: tuple[AssumptionCheck, ...] = ()
         notes = (
             "Pearson correlation targets linear association. The key diagnostics are the paired-data scatterplot, focusing on linearity, influential outliers, and other joint-structure issues such as heteroscedasticity. Marginal normality of x and y is not the main assumption, so separate normality tests are intentionally not reported here.",
         )
     elif method == "spearman":
         coefficient, p_value = spearmanr(x_arr, y_arr, alternative=alternative)
-        ci = _bootstrap_correlation_ci(
+        n_resamples = 5000
+        ci, nonfinite = _bootstrap_correlation_ci(
             x_arr,
             y_arr,
             confidence_level=confidence_level,
             alternative=alternative,
             statistic_fn=lambda a, b: float(spearmanr(a, b, alternative=alternative).statistic),
+            n_resamples=n_resamples,
         )
         assumptions = ()
-        notes = (
+        base_notes: list[str] = [
             "Spearman correlation targets monotonic association using ranks. Diagnostics should focus on whether the relationship is monotonic and on unusual paired observations or many ties; marginal normality tests are not relevant here. A percentile bootstrap confidence interval is reported to provide uncertainty without relying on large-sample normal approximations for rho.",
-        )
+        ]
+        if nonfinite > 0:
+            base_notes.append(
+                f"Bootstrap CI note: dropped {nonfinite} of {n_resamples} resamples with non-finite Spearman estimates (typically due to ties/degenerate resamples)."
+            )
+        notes = tuple(base_notes)
     else:
         raise ValueError("method must be 'pearson' or 'spearman'.")
 

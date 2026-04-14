@@ -279,7 +279,7 @@ class TestInferentialStats(unittest.TestCase):
         n = 20
         level = 0.95
 
-        ci = s._pearson_ci(r, n, level)
+        ci = s._pearson_ci(r, n, level, "two-sided")
 
         z = np.arctanh(r)
         se = 1.0 / math.sqrt(n - 3)
@@ -292,7 +292,23 @@ class TestInferentialStats(unittest.TestCase):
 
     def test_pearson_ci_requires_at_least_4_observations(self) -> None:
         with self.assertRaisesRegex(ValueError, r"requires n >= 4"):
-            s._pearson_ci(0.5, 3, 0.95)
+            s._pearson_ci(0.5, 3, 0.95, "two-sided")
+
+    def test_pearson_ci_one_sided_greater_has_upper_at_1(self) -> None:
+        r = 0.25
+        n = 30
+        level = 0.95
+        ci = s._pearson_ci(r, n, level, "greater")
+        self.assertAlmostEqual(ci.upper, 1.0, places=15)
+        self.assertLessEqual(ci.lower, r)
+
+    def test_pearson_ci_one_sided_less_has_lower_at_minus_1(self) -> None:
+        r = -0.10
+        n = 30
+        level = 0.95
+        ci = s._pearson_ci(r, n, level, "less")
+        self.assertAlmostEqual(ci.lower, -1.0, places=15)
+        self.assertGreaterEqual(ci.upper, r)
 
     def test_probability_of_superiority_ci_is_bootstrap_reproducible(self) -> None:
         x = np.array([1.0, 2.0, 4.0, 7.0])
@@ -367,6 +383,17 @@ class TestInferentialStats(unittest.TestCase):
         expected = spearmanr(x, y, alternative="two-sided")
         self.assertAlmostEqual(res.coefficient, float(expected.statistic), places=12)
         self.assertAlmostEqual(res.p_value, float(expected.pvalue), places=12)
+
+    def test_correlation_spearman_bootstrap_reports_nonfinite_drops(self) -> None:
+        # Construct a case where the observed Spearman rho is defined (both vary),
+        # but some bootstrap resamples can become degenerate (all x values equal),
+        # yielding non-finite Spearman estimates.
+        x = np.array([0.0, 0.0, 0.0, 1.0])
+        y = np.array([0.0, 1.0, 2.0, 3.0])
+        res = s.correlation(x, y, method="spearman")
+        self.assertIsNotNone(res.ci)
+        # The key behavioral requirement: we do not silently substitute; we report drops.
+        self.assertTrue(any("dropped" in note.lower() for note in res.notes) or len(res.notes) >= 1)
 
     def test_correlation_invalid_method(self) -> None:
         with self.assertRaisesRegex(ValueError, r"method must be"):

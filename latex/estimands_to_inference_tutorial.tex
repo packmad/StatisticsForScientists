@@ -330,6 +330,12 @@ A complete report includes different items to answer different questions about t
 \item The \textbf{effect size} helps judge practical magnitude rather than only statistical detectability.
 \end{itemize}
 
+In a hypothesis test we choose a \emph{test statistic} \(T(\mathbf{X})\): a single number computed from the data \(\mathbf{X}\) that would tend to be large (or small) when the null hypothesis \(H_0\) is false. After observing \(t_{\text{obs}} = T(\mathbf{x}_{\text{obs}})\), the \emph{p-value} is the probability, \emph{assuming \(H_0\) and the rest of the model are true}, of getting a test statistic at least as extreme as what was observed. For a two-sided test this is commonly written as
+\[
+ p = \Pr\!\left(|T(\mathbf{X})| \ge |t_{\text{obs}}| \mid H_0\right),
+\]
+where ``extreme'' is defined with respect to the null distribution of \(T(\mathbf{X})\) (for example a \(t\) distribution for Welch's \(t\)-test, or the null distribution used for \(U\) in a Mann--Whitney test). For a one-sided test, the tail is taken in the direction specified by the alternative hypothesis. The p-value is \emph{not} the probability that \(H_0\) is true; it is a statement about how surprising the observed data would be \emph{if} \(H_0\) were true.
+
 For novice-friendly scientific writing, it is usually better to lead with the estimate and interval, and only then report the p-value. This keeps attention on scientific magnitude and uncertainty rather than reducing the result to a binary significant/not-significant label.
 
 A clear sentence often has the following structure: report the estimated quantity, give its interval, then provide the associated test result. For example, one might write that the drug group had systolic blood pressure $8.95$ mmHg lower on average than the placebo group, with a 95\% CI from $6.74$ to $11.15$ mmHg lower, together with the relevant test statistic and p-value.
