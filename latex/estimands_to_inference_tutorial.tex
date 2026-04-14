@@ -167,6 +167,13 @@ This is often the safer default for comparing means from two independent groups.
 
 Despite the name ``test,'' the method is also useful because it naturally leads to a confidence interval for the mean difference. For most scientific reporting, the interval and the estimated difference are at least as important as the p-value.
 
+\paragraph{Degrees of freedom.}
+Degrees of freedom (df) appear in outputs such as $t(24.48) = -8.38$ and are used to determine $p$-values and confidence intervals. Conceptually, the degrees of freedom represent the amount of independent information available to estimate variability. In simple settings, this is closely related to sample size, but it is reduced by the need to estimate quantities such as group means or variances.
+
+In Welch's $t$-test (used throughout this tutorial for mean differences), the degrees of freedom are not necessarily an integer. This is because the method adjusts for unequal variances between groups, producing an \emph{effective} degrees of freedom that reflects both sample sizes and variability. Smaller df correspond to greater uncertainty and heavier tails in the reference distribution, leading to wider confidence intervals and more conservative inference.
+
+For interpretation, the key point is that df are not parameters of scientific interest; they are part of the inferential machinery that determines how uncertainty is quantified. When reporting results, df should be included for completeness (e.g., $t(24.48) = -8.38$), but substantive interpretation should focus on the estimated effect, its confidence interval, and its practical meaning.
+
 \subsubsection{Student's t-test}
 
 Student's t-test assumes equal variances \citep{student1908probable}.
