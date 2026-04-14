@@ -121,6 +121,7 @@ def build_examples() -> list[dict[str, Any]]:
 
     return [
         {
+            "id": "EX-RT-01",
             "slug": "reaction_time_mean_difference",
             "title": "Reaction-time experiment",
             "question": "How many milliseconds faster is interface A than interface B on average?",
@@ -129,6 +130,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_two_group(reaction_mean, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-OR-01",
             "slug": "usability_ratings",
             "title": "Ordinal usability rating study",
             "question": "Does the new app version tend to receive higher usability ratings?",
@@ -137,6 +139,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_two_group(usability_result, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-CO-01",
             "slug": "study_time_exam_pearson",
             "title": "Study time and exam performance",
             "question": "Are study hours and exam scores linearly associated?",
@@ -145,6 +148,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_correlation(study_pearson, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-CO-02",
             "slug": "study_time_exam_spearman",
             "title": "Study time and exam performance (rank-based)",
             "question": "Do study hours and exam scores show a monotonic association?",
@@ -153,6 +157,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_correlation(study_spearman, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-BS-01",
             "slug": "stress_sleep_spearman",
             "title": "Stress level and sleep quality",
             "question": "What is the monotonic association between stress and sleep quality?",
@@ -161,6 +166,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_correlation(stress_spearman, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-TG-02",
             "slug": "blood_pressure_welch",
             "title": "Blood-pressure treatment example",
             "question": "How much lower is post-treatment blood pressure in the drug group?",
@@ -169,6 +175,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_two_group(blood_pressure_result, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-OR-02",
             "slug": "teaching_methods",
             "title": "Teaching-method confidence ratings",
             "question": "Does teaching method A tend to produce higher confidence ratings?",
@@ -177,6 +184,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_two_group(teaching_result, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-CO-03",
             "slug": "temperature_heart_rate",
             "title": "Body temperature and heart rate",
             "question": "Are body temperature and heart rate positively associated?",
@@ -185,6 +193,7 @@ def build_examples() -> list[dict[str, Any]]:
             "report": stats.report_correlation(temperature_result, digits=2, include_interpretation=False),
         },
         {
+            "id": "EX-TG-01",
             "slug": "same_data_different_estimand",
             "title": "Same interface data, different estimand",
             "question": "Using the same reaction-time data, how often is interface A faster than interface B?",
@@ -205,6 +214,7 @@ def _examples_payload() -> list[dict[str, Any]]:
         result = example["result"]
         payload.append(
             {
+                "id": example["id"],
                 "slug": example["slug"],
                 "title": example["title"],
                 "question": example["question"],
@@ -218,7 +228,7 @@ def _examples_payload() -> list[dict[str, Any]]:
 
 def print_examples(*, show_data: bool) -> None:
     for example in build_examples():
-        print(f"### {example['title']}")
+        print(f"### {example['id']} — {example['title']} (slug: {example['slug']})")
         print(f"Question: {example['question']}")
         print(f"Dataset: {example['dataset']}")
         if show_data:

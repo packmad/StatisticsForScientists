@@ -1,6 +1,6 @@
 # StatisticsForScientists
 
-`StatisticsForScientists` is a small Python project plus companion paper for teaching practical statistical inference with an estimand-first perspective.
+`StatisticsForScientists` is a small Python project plus companion paper _"From Estimands to Inference: A Practical Tutorial for Robust Statistical Analysis in Scientific Papers"_ for teaching practical statistical inference with an estimand-first perspective.
 
 The repository includes:
 
@@ -14,7 +14,7 @@ The repository includes:
 
 The tutorial manuscript is available here:
 
-- [PDF: From Estimands to Inference](latex/estimands_to_inference_tutorial.pdf)
+- PDF: [From Estimands to Inference: A Practical Tutorial for Robust Statistical Analysis in Scientific Papers](latex/estimands_to_inference_tutorial.pdf)
 
 ## Installation
 
@@ -56,3 +56,10 @@ pdflatex -interaction=nonstopmode -halt-on-error estimands_to_inference_tutorial
 ```
 
 This produces `latex/estimands_to_inference_tutorial.pdf`.
+
+
+## Acknowledgments
+
+My warmest thanks to Josh Starmer, the author of [StatQuest](https://www.youtube.com/@statquest) YouTube channel and Tang et al., the authors of the paper [Misuse, Misreporting, Misinterpretation of Statistical Methods in Usable Privacy and Security Papers](https://www.usenix.org/conference/soups2025/presentation/tang). 
+
+Your journey continues with these two resources.
