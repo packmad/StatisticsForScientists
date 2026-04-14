@@ -363,6 +363,8 @@ A physiologist records body temperature and heart rate during exercise sessions.
 
 Consider again the reaction-time dataset from earlier. One researcher asks, ``How many milliseconds faster is interface A than interface B on average?'' That question targets a difference in means, and the answer is a mean difference of $-23.08$ ms (95\% CI $[-33.92, -12.25]$). Another asks, ``If I randomly pick one user from each interface, how likely is the user on interface A to finish faster?'' To answer that question, we switch to a stochastic-dominance framing on the completion-time scale and estimate that interface A is faster about $90\%$ of the time (probability of superiority $= 0.90$, 95\% CI $[0.75, 1.00]$, $U = 119$, $p = .001$). The dataset is identical in both analyses, but the scientifically relevant summary changes because the estimand changes.
 
+Because the outcome is completion time, ``A is faster'' means \(T_A < T_B\), so in code we compute \(P(T_B > T_A)\), which is equivalent to the probability that A finishes faster than B (counting ties as one-half).
+
 
 
 %---------------------------------------------------------------------------------------------------

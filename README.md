@@ -10,6 +10,12 @@ The repository includes:
 - `latex/estimands_to_inference_tutorial.tex`: the source of the tutorial paper
 - `latex/estimands_to_inference_tutorial.pdf`: the compiled PDF version of the paper
 
+## Disclaimer: It's a Work In Progress!
+
+It's a new project I've been working on in my spare time; there are still many concepts that need to be presented. 
+For example, paired/repeated-measures analyses, regression, contingency tables, ANOVA / mixed models, etc. 
+
+
 ## Paper
 
 The tutorial manuscript is available here:
