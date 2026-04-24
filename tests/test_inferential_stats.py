@@ -1,18 +1,10 @@
 import math
 import unittest
-from pathlib import Path
-import importlib.util
-import sys
 
 import numpy as np
 from scipy.stats import mannwhitneyu, norm, pearsonr, spearmanr, ttest_ind
 
-_MODULE_PATH = Path(__file__).resolve().parents[1] / "inferential_stats.py"
-_spec = importlib.util.spec_from_file_location("inferential_stats_local", _MODULE_PATH)
-assert _spec is not None and _spec.loader is not None
-s = importlib.util.module_from_spec(_spec)
-sys.modules[_spec.name] = s
-_spec.loader.exec_module(s)
+from statisticsforscientists import inferential_stats as s
 
 
 class TestInferentialStats(unittest.TestCase):

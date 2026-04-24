@@ -2,12 +2,11 @@
 Worked examples for every scenario used in the paper.
 
 Run with:
-    source /home/simo/pyvenv/bin/activate
-    python examples.py
+    uv run examples
 
 Optional flags:
-    python examples.py --show-data
-    python examples.py --json
+    uv run examples --show-data
+    uv run examples --json
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ import argparse
 import json
 from typing import Any
 
-import inferential_stats as stats
+from statisticsforscientists import inferential_stats as stats
 
 
 DATASETS: dict[str, dict[str, list[float]]] = {
