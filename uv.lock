@@ -214,7 +214,7 @@ wheels = [
 ]
 
 [[package]]
-name = "statisticsforscientists"
+name = "stats4science"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

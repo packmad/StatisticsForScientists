@@ -15,7 +15,7 @@ import argparse
 import json
 from typing import Any
 
-from statisticsforscientists import inferential_stats as stats
+import stats4science as stats
 
 
 DATASETS: dict[str, dict[str, list[float]]] = {
@@ -227,7 +227,7 @@ def _examples_payload() -> list[dict[str, Any]]:
 
 def print_examples(*, show_data: bool) -> None:
     for example in build_examples():
-        print(f"### {example['id']} — {example['title']} (slug: {example['slug']})")
+        print(f"### {example['id']} - {example['title']} (slug: {example['slug']})")
         print(f"Question: {example['question']}")
         print(f"Dataset: {example['dataset']}")
         if show_data:

@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 from scipy.stats import mannwhitneyu, norm, pearsonr, spearmanr, ttest_ind
 
-from statisticsforscientists import inferential_stats as s
+from stats4science import inferential_stats as s
 
 
 class TestInferentialStats(unittest.TestCase):
