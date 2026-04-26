@@ -11,12 +11,11 @@ Optional flags:
 
 from __future__ import annotations
 
-import argparse
 import json
+import argparse
 from typing import Any
 
 import stats4science as stats
-
 
 DATASETS: dict[str, dict[str, list[float]]] = {
     "reaction_time_ms": {
