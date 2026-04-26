@@ -1,19 +1,20 @@
 # StatisticsForScientists
 
-`StatisticsForScientists` is a small Python project plus companion paper _"From Estimands to Inference: A Practical Tutorial for Robust Statistical Analysis in Scientific Papers"_ for teaching practical statistical inference with an estimand-first perspective.
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/packmad/StatisticsForScientists/publish.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+
+`stats4science` is a lightweight Python package plus companion paper _"From Estimands to Inference: A Practical Tutorial for Robust Statistical Analysis in Scientific Papers"_ for teaching practical statistical inference with an estimand-first perspective.
 
 The repository includes:
 
-- `inferential_stats.py`: the main lightweight analysis module
-- `examples.py`: reproducible worked examples used in the paper
+- `stats4science/inferential_stats.py`: the main analysis module
+- `examples/`: example scripts used to explain how to use this package for different use cases
 - `tests/`: unit tests for the statistical helpers and reporting functions
 - `latex/estimands_to_inference_tutorial.tex`: the source of the tutorial paper
 - `latex/estimands_to_inference_tutorial.pdf`: the compiled PDF version of the paper
 
-## Disclaimer: It's a Work In Progress!
-
-It's a new project I've been working on in my spare time; there are still many concepts that need to be presented. 
-For example, paired/repeated-measures analyses, regression, contingency tables, ANOVA / mixed models, etc. 
+>[!warning] It's a Work In Progress!
+It's a new project I've been working on in my spare time; there are still many concepts that need to be presented.
+For example, paired/repeated-measures analyses, regression, contingency tables, ANOVA / mixed models, etc.
 
 
 ## Paper
@@ -24,30 +25,27 @@ The tutorial manuscript is available here:
 
 ## Installation
 
-Create or activate your environment, then install the required dependencies:
+### From PyPI
 
 ```bash
-pip install -r requirements.txt
+pip install stats4science
 ```
 
-## Run The Examples
+### For development
 
-The paper's worked examples are implemented in `examples.py`. 
-Please refer to this file for guidalines on how to use module `inferential_stats.py`.
+See [doc/development.md](doc/development.md) for setup, linting, testing, and release instructions.
 
-```bash
-python3 examples.py
-```
+## Usage
 
-Useful options:
+```python
+import stats4science as stats
+import numpy as np
 
-- `python examples.py --show-data` prints the raw datasets used in the paper
-- `python examples.py --json` emits machine-readable results for all worked examples
+group_a = np.array([398, 410, 405, 392, 430])
+group_b = np.array([412, 439, 421, 445, 433])
 
-## Run The Tests
-
-```bash
-python3 -m unittest discover -s tests
+result = stats.compare_independent_groups(group_a, group_b, estimand="mean_difference")
+print(stats.report_two_group(result))
 ```
 
 ## Rebuild The Paper
@@ -63,9 +61,17 @@ pdflatex -interaction=nonstopmode -halt-on-error estimands_to_inference_tutorial
 
 This produces `latex/estimands_to_inference_tutorial.pdf`.
 
+To reproduce all worked examples from the companion paper:
+
+```bash
+python examples/paper_examples.py
+# or with options:
+python examples/paper_examples.py --show-data
+python examples/paper_examples.py --json
+```
 
 ## Acknowledgments
 
-My warmest thanks to Josh Starmer, the author of [StatQuest](https://www.youtube.com/@statquest) YouTube channel and Tang et al., the authors of the paper [Misuse, Misreporting, Misinterpretation of Statistical Methods in Usable Privacy and Security Papers](https://www.usenix.org/conference/soups2025/presentation/tang). 
+My warmest thanks to Josh Starmer, the author of [StatQuest](https://www.youtube.com/@statquest) YouTube channel and Tang et al., the authors of the paper [Misuse, Misreporting, Misinterpretation of Statistical Methods in Usable Privacy and Security Papers](https://www.usenix.org/conference/soups2025/presentation/tang).
 
 Your journey continues with these two resources.
