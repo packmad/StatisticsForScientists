@@ -2,15 +2,15 @@ import math
 import unittest
 
 import numpy as np
-from scipy.stats import mannwhitneyu, norm, pearsonr, spearmanr, ttest_ind
+from scipy.stats import norm, pearsonr, spearmanr, ttest_ind, mannwhitneyu
 
-from statisticsforscientists import inferential_stats as s
+from stats4science import inferential_stats as s
 
 
 class TestInferentialStats(unittest.TestCase):
     def test_as_1d_float_array_rejects_non_1d(self) -> None:
         with self.assertRaisesRegex(ValueError, r"must be one-dimensional"):
-            s._as_1d_float_array([[1.0, 2.0], [3.0, 4.0]], name="x")
+            s._as_1d_float_array([[1.0, 2.0], [3.0, 4.0]], name="x")  # type: ignore[list-item]
 
     def test_as_1d_float_array_rejects_empty(self) -> None:
         with self.assertRaisesRegex(ValueError, r"must not be empty"):
@@ -133,7 +133,7 @@ class TestInferentialStats(unittest.TestCase):
         res = s.compare_independent_groups(x, y, estimand="mean_difference", method="student")
         self.assertEqual(res.method, "Students_t_test")
         self.assertIsNotNone(res.df)
-        self.assertAlmostEqual(float(res.df), 6.0, places=12)
+        self.assertAlmostEqual(float(res.df), 6.0, places=12)  # type: ignore[arg-type]
 
     def test_compare_independent_groups_welch_matches_scipy_statistic_and_pvalue(self) -> None:
         x = np.array([1.0, 2.5, 4.0, 5.5, 7.0])

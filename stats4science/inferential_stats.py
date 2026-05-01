@@ -1,24 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Callable, Literal, Optional, Sequence, Any
 import math
 import warnings
+from typing import Any, Literal, Callable, Optional, Sequence
+from dataclasses import asdict, dataclass
 
 import numpy as np
 from scipy.stats import (
-    anderson,
     ConstantInputWarning,
-    kurtosis,
-    levene,
-    mannwhitneyu,
-    norm,
-    pearsonr,
-    shapiro,
-    spearmanr,
     t,
+    norm,
+    levene,
+    shapiro,
+    anderson,
+    kurtosis,
+    pearsonr,
+    spearmanr,
+    mannwhitneyu,
 )
-
 
 ArrayLike1D = Sequence[float] | np.ndarray
 Alternative = Literal["two-sided", "less", "greater"]
@@ -117,9 +116,7 @@ class TwoGroupComparisonResult:
             parts.append(f"df={self.df:.{digits}f}")
         parts.append(f"p={p}")
         if self.ci is not None:
-            parts.append(
-                f"{int(self.ci.level * 100)}% CI [{self.ci.lower:.{digits}f}, {self.ci.upper:.{digits}f}]"
-            )
+            parts.append(f"{int(self.ci.level * 100)}% CI [{self.ci.lower:.{digits}f}, {self.ci.upper:.{digits}f}]")
         if self.effect_size is not None:
             parts.append(f"{self.effect_size.name}={self.effect_size.value:.{digits}f}")
         parts.append(f"group1_n={self.group1_descriptives.n}")
@@ -154,9 +151,7 @@ class CorrelationResult:
         r = f"{self.coefficient:.{digits}f}"
         parts = [f"{self.method} correlation: r={r}", f"p={p}", f"n={self.n}"]
         if self.ci is not None:
-            parts.append(
-                f"{int(self.ci.level * 100)}% CI [{self.ci.lower:.{digits}f}, {self.ci.upper:.{digits}f}]"
-            )
+            parts.append(f"{int(self.ci.level * 100)}% CI [{self.ci.lower:.{digits}f}, {self.ci.upper:.{digits}f}]")
         parts.append(f"x_mean={self.x_descriptives.mean:.{digits}f}")
         parts.append(f"y_mean={self.y_descriptives.mean:.{digits}f}")
         return "; ".join(parts)
@@ -197,9 +192,7 @@ def describe(data: ArrayLike1D) -> DescriptiveStats:
     near_constant_tol = 1e-12 * scale
     if ptp <= near_constant_tol:
         kurt = float("nan")
-        notes.append(
-            "Kurtosis is undefined or numerically unstable for constant/nearly-constant data; returning NaN."
-        )
+        notes.append("Kurtosis is undefined or numerically unstable for constant/nearly-constant data; returning NaN.")
     else:
         kurt = float(kurtosis(x, fisher=True, bias=False, nan_policy="raise"))
     return DescriptiveStats(
@@ -386,7 +379,7 @@ def _bootstrap_correlation_ci(
     finite_estimates: list[float] = []
     nonfinite_count = 0
 
-    for i in range(n_resamples):
+    for _ in range(n_resamples):
         idx = rng.integers(n, size=n)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=ConstantInputWarning)
@@ -520,7 +513,9 @@ def compare_independent_groups(
         from scipy.stats import ttest_ind
 
         statistic, p_value = ttest_ind(x, y, equal_var=equal_var, alternative=alternative)
-        ci, df = _mean_difference_ci(x, y, confidence_level=confidence_level, equal_var=equal_var, alternative=alternative)
+        ci, df = _mean_difference_ci(
+            x, y, confidence_level=confidence_level, equal_var=equal_var, alternative=alternative
+        )
         effect = hedges_g(x, y)
         note = (
             "This analysis assumes independent observations within and between groups; paired or repeated-measures designs require different methods. "
@@ -650,7 +645,7 @@ def correlation(
         coefficient, p_value = pearsonr(x_arr, y_arr, alternative=alternative)
         ci = _pearson_ci(float(coefficient), int(x_arr.size), confidence_level, alternative)
         assumptions: tuple[AssumptionCheck, ...] = ()
-        notes = (
+        notes: tuple[str, ...] = (
             "Pearson correlation targets linear association. The key diagnostics are the paired-data scatterplot, focusing on linearity, influential outliers, and other joint-structure issues such as heteroscedasticity. Marginal normality of x and y is not the main assumption, so separate normality tests are intentionally not reported here.",
         )
     elif method == "spearman":
@@ -716,17 +711,17 @@ def interpret_two_group(result: TwoGroupComparisonResult, *, alpha: float = 0.05
     parts: list[str] = []
     if result.estimand == "mean_difference":
         parts.append(f"The estimated mean difference (group 1 - group 2) is {result.estimate:.3f} units.")
-        parts.append(
-            f"Group 1 scored {direction} than group 2 by {abs(result.estimate):.3f} units."
-        )
+        parts.append(f"Group 1 scored {direction} than group 2 by {abs(result.estimate):.3f} units.")
         if result.ci is not None and math.isfinite(result.ci.lower) and math.isfinite(result.ci.upper):
             contains_zero = result.ci.lower <= 0 <= result.ci.upper
             parts.append(
                 f"The {int(result.ci.level * 100)}% confidence interval "
                 f"[{result.ci.lower:.3f}, {result.ci.upper:.3f}] "
-                + ("includes zero, consistent with no meaningful difference."
-                   if contains_zero
-                   else "excludes zero, reinforcing the finding.")
+                + (
+                    "includes zero, consistent with no meaningful difference."
+                    if contains_zero
+                    else "excludes zero, reinforcing the finding."
+                )
             )
         parts.append(
             f"The exact inferential result is {apa_pvalue(result.p_value)}"
@@ -746,7 +741,9 @@ def interpret_two_group(result: TwoGroupComparisonResult, *, alpha: float = 0.05
                 f"A randomly chosen value from group 1 exceeds one from group 2 about {result.estimate:.3f} of the time, so group 2 tends to have larger values."
             )
         else:
-            parts.append("The probability of superiority is 0.500, so neither group shows stochastic dominance over the other.")
+            parts.append(
+                "The probability of superiority is 0.500, so neither group shows stochastic dominance over the other."
+            )
 
         if result.ci is not None and math.isfinite(result.ci.lower) and math.isfinite(result.ci.upper):
             contains_half = result.ci.lower <= 0.5 <= result.ci.upper
@@ -784,17 +781,18 @@ def interpret_correlation(result: CorrelationResult, *, alpha: float = 0.05) -> 
 
     parts: list[str] = []
     parts.append(
-        f"The {result.method} correlation is {direction} and {strength} "
-        f"({symbol} = {result.coefficient:.3f})."
+        f"The {result.method} correlation is {direction} and {strength} ({symbol} = {result.coefficient:.3f})."
     )
 
     if result.ci is not None:
         parts.append(
             f"The {int(result.ci.level * 100)}% confidence interval "
             f"[{result.ci.lower:.3f}, {result.ci.upper:.3f}] "
-            + ("includes zero, consistent with no association."
-               if result.ci.lower <= 0 <= result.ci.upper
-               else "excludes zero, reinforcing the association.")
+            + (
+                "includes zero, consistent with no association."
+                if result.ci.lower <= 0 <= result.ci.upper
+                else "excludes zero, reinforcing the association."
+            )
         )
     parts.append(
         f"The exact inferential result is {apa_pvalue(result.p_value)}"
@@ -820,7 +818,11 @@ def apa_pvalue(p: float) -> str:
 
 
 def report_two_group(
-    result: TwoGroupComparisonResult, digits: int = 2, *, include_interpretation: bool = True, alpha: float = 0.05,
+    result: TwoGroupComparisonResult,
+    digits: int = 2,
+    *,
+    include_interpretation: bool = True,
+    alpha: float = 0.05,
 ) -> str:
     group1_context = (
         f"Group 1 descriptives: n = {result.group1_descriptives.n}, "
@@ -833,8 +835,8 @@ def report_two_group(
         f"median = {result.group2_descriptives.median:.{digits}f}, range [{result.group2_descriptives.minimum:.{digits}f}, {result.group2_descriptives.maximum:.{digits}f}]"
     )
     if result.estimand == "mean_difference":
-        ci = result.ci
-        assert ci is not None
+        assert result.ci is not None
+        ci_str = f"({int(result.ci.level * 100)}% CI [{result.ci.lower:.{digits}f}, {result.ci.upper:.{digits}f}]), "
         stat_name = "t"
         df = f"{result.df:.{digits}f}" if result.df is not None else "?"
         eff = ""
@@ -842,13 +844,13 @@ def report_two_group(
             eff = f", {result.effect_size.name.replace('_', ' ')} = {result.effect_size.value:.{digits}f}"
         text = (
             f"{result.method.replace('_', ' ')} showed a mean difference of {result.estimate:.{digits}f} "
-            f"({int(ci.level * 100)}% CI [{ci.lower:.{digits}f}, {ci.upper:.{digits}f}]), "
+            f"{ci_str}"
             f"{stat_name}({df}) = {result.statistic:.{digits}f}, {apa_pvalue(result.p_value)}{eff}."
         )
     else:
-        ci = ""
+        ci_str = ""
         if result.ci is not None:
-            ci = f" ({int(result.ci.level * 100)}% CI [{result.ci.lower:.{digits}f}, {result.ci.upper:.{digits}f}])"
+            ci_str = f" ({int(result.ci.level * 100)}% CI [{result.ci.lower:.{digits}f}, {result.ci.upper:.{digits}f}])"
         eff = ""
         if result.effect_size is not None:
             eff = f", Cliff's delta = {result.effect_size.value:.{digits}f}"
@@ -859,7 +861,7 @@ def report_two_group(
                 )
         text = (
             f"{result.method.replace('_', ' ')} estimated a probability of superiority of "
-            f"{result.estimate:.{digits}f}{ci}, U = {result.statistic:.{digits}f}, {apa_pvalue(result.p_value)}{eff}."
+            f"{result.estimate:.{digits}f}{ci_str}, U = {result.statistic:.{digits}f}, {apa_pvalue(result.p_value)}{eff}."
         )
     text += f"\n{group1_context}.\n{group2_context}."
 
@@ -869,7 +871,11 @@ def report_two_group(
 
 
 def report_correlation(
-    result: CorrelationResult, digits: int = 2, *, include_interpretation: bool = True, alpha: float = 0.05,
+    result: CorrelationResult,
+    digits: int = 2,
+    *,
+    include_interpretation: bool = True,
+    alpha: float = 0.05,
 ) -> str:
     symbol = "r" if result.method == "pearson" else "rho"
     ci = ""
